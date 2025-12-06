@@ -1,0 +1,61 @@
+"""
+Example Plugin for Agent Zero
+Copy this file and modify to create your own plugin
+"""
+
+from python.helpers.tool import Tool, Response
+
+
+# Plugin metadata (required)
+PLUGIN_METADATA = {
+    "name": "example_tool",
+    "version": "1.0.0",
+    "author": "Your Name",
+    "description": "Example plugin demonstrating custom tools",
+    "dependencies": [],  # List of required Python packages
+    "enabled": True,
+    "tool_class": "ExampleTool",  # Name of the tool class
+    "config": {
+        # Custom configuration for this plugin
+        "example_setting": "value"
+    }
+}
+
+
+class ExampleTool(Tool):
+    """Example custom tool"""
+
+    async def execute(self, **kwargs):
+        """
+        Execute the tool
+
+        Args from self.args:
+            action: What action to perform
+            message: Message to process
+        """
+        action = self.args.get("action", "hello")
+        message = self.args.get("message", "")
+
+        if action == "hello":
+            return Response(
+                message=f"Hello! You said: {message}",
+                break_loop=False
+            )
+        elif action == "info":
+            return Response(
+                message=f"Example Tool v{PLUGIN_METADATA['version']}\n"
+                       f"{PLUGIN_METADATA['description']}",
+                break_loop=False
+            )
+        else:
+            return Response(
+                message=f"Unknown action: {action}",
+                break_loop=False
+            )
+
+
+# To use this plugin:
+# 1. Copy this file to a new .py file in the plugins/ directory
+# 2. Modify PLUGIN_METADATA and ExampleTool class
+# 3. Reload plugins in Agent Zero
+# 4. Use in prompts with tool_name matching metadata "name"

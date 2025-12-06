@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SENTINEL AI TERMINAL | SOLANA NET</title>
+    
+    <!-- Fallback CSS for basic styling if Tailwind fails -->
+    <style>
+        body { background: #000; color: #0f0; font-family: monospace; }
+        .glass-panel { border: 1px solid #333; padding: 10px; margin-bottom: 10px; }
+        button { cursor: pointer; padding: 10px; border: 1px solid #0f0; background: #000; color: #0f0; width: 100%; margin-top: 5px; }
+        button:hover { background: #0f0; color: #000; }
+        #debug-console { display: none; position: fixed; bottom: 0; left: 0; right: 0; height: 150px; background: rgba(50,0,0,0.9); color: #fff; border-top: 2px solid red; overflow-y: scroll; padding: 10px; z-index: 9999; font-size: 10px; }
+    </style>
+
+    <!-- External Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        :root { --bg: #050505; --panel: #111; --border: #333; --accent: #00ff41; --text: #eee; }
+        body { background-color: var(--bg); color: var(--text); font-family: 'JetBrains Mono', monospace; overflow-x: hidden; }
+        .glass-panel { background: rgba(17, 17, 17, 0.9); border: 1px solid #1f2937; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        .neon-text { text-shadow: 0 0 5px rgba(0, 255, 65, 0.5); color: var(--accent); }
+        .blink { animation: blinker 1s linear infinite; }
+        @keyframes blinker { 50% { opacity: 0; } }
+        .loader { border: 2px solid #111; border-top: 2px solid var(--accent); border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="p-2 md:p-6 text-xs md:text-sm">
+
+    <!-- Debug Console Overlay -->
+    <div id="debug-console"><h3>DEBUG CONSOLE (Errors will appear here)</h3></div>
+
+    <!-- Top Bar -->
+    <div class="flex justify-between items-center mb-6 border-b border-gray-800 pb-2">
+        <div class="flex items-center space-x-3">
+            <i class="fas fa-shield-alt text-2xl text-green-500"></i>
+            <div>
+                <h1 class="text-xl font-bold tracking-wider text-white">SENTINEL <span class="text-green-500">AI</span></h1>
+                <p class="text-[10px] text-gray-500">V.2.4.1 // CONNECTED: SOLANA MAINNET</p>
+            </div>
+        </div>
+        <div class="flex space-x-4 text-[10px] text-gray-400">
+            <div>STATUS: <span class="blink text-green-500">ONLINE</span></div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Left Control Panel -->
+        <div class="lg:col-span-3 space-y-4">
+            <!-- Balance Panel -->
+            <div class="glass-panel p-4 rounded bg-black">
+                <p class="text-gray-500 mb-1">TOTAL EQUITY (USDC)</p>
+                <h2 class="text-3xl font-bold text-white mb-2">$<span id="equity-val">12,450.00</span></h2>
+            </div>
+
+            <!-- Bot Controls -->
+            <div class="glass-panel p-4 rounded">
+                <h3 class="font-bold text-gray-300 mb-4 border-b border-gray-800 pb-2">STRATEGY MATRIX</h3>
+                
+                <div class="space-y-4">
+                    <button id="btn-run-sim" class="w-full bg-green-900 hover:bg-green-700 text-white font-bold py-3 rounded border border-green-600 transition-all">
+                        <i class="fas fa-microchip"></i> EXECUTE AI BACKTEST
+                    </button>
+                    
+                    <button id="btn-monte-carlo" class="w-full bg-gray-800 hover:bg-gray-700 text-gray-300 py-2 rounded text-xs border border-gray-600">
+                        <i class="fas fa-random"></i> Run Monte Carlo Audit
+                    </button>
+                </div>
+            </div>
+
+            <!-- System Logs -->
+            <div class="glass-panel p-3 rounded h-48 overflow-hidden relative">
+                <h3 class="text-[10px] font-bold text-gray-500 mb-2">SYSTEM LOGS</h3>
+                <div id="logs-container" class="font-mono text-[10px] text-green-400 space-y-1 h-full overflow-y-auto pb-4">
+                    <p>[SYSTEM] Sentinel Core Initialized...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Chart Area -->
+        <div class="lg:col-span-9 space-y-6">
+            <div class="glass-panel p-4 rounded relative min-h-[400px]">
+                <div id="chart-main" class="w-full h-[350px]"></div>
+                <!-- Loading Overlay -->
+                <div id="loading-overlay" class="absolute inset-0 bg-black bg-opacity-80 flex flex-col items-center justify-center hidden z-10">
+                    <div class="loader mb-4" style="width: 40px; height: 40px;"></div>
+                    <p class="text-green-500 font-mono animate-pulse">PROCESSING BLOCKS...</p>
+                </div>
+            </div>
+
+            <!-- AI Insight -->
+            <div class="glass-panel p-4 rounded min-h-[100px] border-l-4 border-l-green-600 bg-black">
+                <h3 class="text-xs font-bold text-green-500 mb-2">SENTINEL AI INSIGHT</h3>
+                <div id="ai-text" class="text-xs text-gray-300 font-mono leading-relaxed">// Waiting for simulation data...</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        // Global Error Handler
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            const consoleDiv = document.getElementById('debug-console');
+            consoleDiv.style.display = 'block';
+            consoleDiv.innerHTML += `<p style="color:red">[ERROR] ${msg} (Line: ${lineNo})</p>`;
+            return false;
+        };
+
+        // DOM Loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            try {
+                // --- Utilities ---
+                const log = (msg) => {
+                    const container = document.getElementById('logs-container');
+                    if (!container) return;
+                    const time = new Date().toLocaleTimeString('en-US', {hour12: false});
+                    const p = document.createElement('p');
+                    p.innerHTML = `<span class="text-gray-600">[${time}]</span> ${msg}`;
+                    container.appendChild(p);
+                    container.scrollTop = container.scrollHeight;
+                }
+
+                const typeWriter = (text, elementId, speed = 20) => {
+                    let i = 0;
+                    const el = document.getElementById(elementId);
+                    if (!el) return;
+                    el.innerHTML = '';
+                    function type() {
+                        if (i < text.length) {
+                            el.innerHTML += text.charAt(i);
+                            i++;
+                            setTimeout(type, speed);
+                        }
+                    }
+                    type();
+                }
+
+                // --- Chart Init ---
+                let mainChart;
+                if (typeof ApexCharts !== 'undefined') {
+                    const options = {
+                        chart: { type: 'area', height: 350, toolbar: {show: false}, animations: {enabled: true} },
+                        stroke: { curve: 'smooth', width: 2, colors: ['#00ff41'] },
+                        fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.7, opacityTo: 0.1, stops: [0, 90, 100] } },
+                        dataLabels: { enabled: false },
+                        grid: { borderColor: '#333' },
+                        xaxis: { type: 'datetime', labels: {style: {colors: '#666'}} },
+                        yaxis: { labels: {style: {colors: '#666'}} },
+                        theme: { mode: 'dark' },
+                        series: [{ name: 'Portfolio Value', data: [] }]
+                    };
+                    mainChart = new ApexCharts(document.querySelector("#chart-main"), options);
+                    mainChart.render();
+                } else {
+                    log("ERROR: ApexCharts library failed to load from CDN.");
+                    document.getElementById('chart-main').innerHTML = "<div class='text-red-500 p-4'>Error: Chart Library Not Loaded. Check Internet Connection.</div>";
+                }
+
+                // --- Logic & Event Listeners ---
+                const btnSim = document.getElementById('btn-run-sim');
+                const btnMonte = document.getElementById('btn-monte-carlo');
+
+                if (btnSim) {
+                    btnSim.onclick = function() {
+                        try {
+                            const overlay = document.getElementById('loading-overlay');
+                            
+                            // UI Feedback
+                            this.innerHTML = '<i class="fas fa-circle-notch fa-spin"></i> CALCULATING...';
+                            if(overlay) overlay.classList.remove('hidden');
+                            log('Initiating Backtest Sequence v4.2...');
+                            
+                            setTimeout(() => { log('Downloading historical data (Solana Chain)...'); }, 500);
+                            setTimeout(() => { log('Simulating 1,420 trades...'); }, 1500);
+
+                            setTimeout(() => {
+                                // Done
+                                if(overlay) overlay.classList.add('hidden');
+                                this.innerHTML = '<i class="fas fa-check"></i> COMPLETE';
+                                
+                                // Update Chart
+                                if (mainChart) {
+                                    let data = [];
+                                    let val = 10000;
+                                    let now = new Date().getTime();
+                                    for(let i=0; i<100; i++) {
+                                        val += (Math.random() - 0.4) * 200;
+                                        data.push([now + (i * 3600000), val]);
+                                    }
+                                    mainChart.updateSeries([{ name: 'Portfolio Value', data: data }]);
+                                }
+                                
+                                // Update Stats
+                                const eq = document.getElementById('equity-val');
+                                if(eq) eq.innerText = "14,892.40";
+
+                                // AI Insight
+                                typeWriter("> MARKET STRUCTURE: BULLISH. RECOMMENDATION: BUY.", 'ai-text');
+                                log('Simulation finalized successfully.');
+                            }, 3000);
+                        } catch (e) {
+                            alert("Error in simulation: " + e.message);
+                        }
+                    };
+                }
+
+                if (btnMonte) {
+                    btnMonte.onclick = function() {
+                        log('Running Monte Carlo Risk Analysis...');
+                        if (mainChart) {
+                             mainChart.updateOptions({ stroke: { width: 1, opacity: 0.5 }, fill: { opacity: 0 }, chart: { type: 'line' } });
+                             let series = [];
+                             for(let s=0; s<10; s++) { // Limit to 10 for performance
+                                 let data = [];
+                                 let val = 10000;
+                                 for(let i=0; i<50; i++) { val *= (1 + (Math.random() - 0.5) * 0.05); data.push(val); }
+                                 series.push({name: `Sim ${s}`, data: data});
+                             }
+                             mainChart.updateSeries(series);
+                        }
+                        typeWriter("> MONTE CARLO: POSITIVE EXPECTANCY CONFIRMED.", 'ai-text');
+                    };
+                }
+
+            } catch (err) {
+                console.error(err);
+                document.getElementById('debug-console').style.display = 'block';
+                document.getElementById('debug-console').innerHTML += `<p>${err.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>

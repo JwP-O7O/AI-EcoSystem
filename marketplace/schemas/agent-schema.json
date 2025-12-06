@@ -1,0 +1,300 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentzero.dev/schemas/agent-manifest.json",
+  "title": "Agent Manifest",
+  "description": "Schema for Agent Zero marketplace agent manifests",
+  "type": "object",
+  "required": ["name", "version", "author", "description", "category", "license", "agent"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 3,
+      "maxLength": 50,
+      "description": "Unique agent identifier (lowercase, hyphens only)"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version (e.g., 1.0.0)"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 50,
+      "description": "Author username or organization"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200,
+      "description": "Short description of the agent"
+    },
+    "long_description": {
+      "type": "string",
+      "maxLength": 2000,
+      "description": "Detailed description (markdown supported)"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "general",
+        "code",
+        "data-science",
+        "content",
+        "research",
+        "automation",
+        "enterprise",
+        "security",
+        "devops",
+        "marketing",
+        "finance",
+        "education"
+      ],
+      "description": "Primary category"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-z0-9-]+$"
+      },
+      "minItems": 1,
+      "maxItems": 10,
+      "uniqueItems": true,
+      "description": "Search tags"
+    },
+    "license": {
+      "type": "string",
+      "enum": ["MIT", "Apache-2.0", "GPL-3.0", "BSD-3-Clause", "ISC", "Proprietary"],
+      "description": "License type"
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "Project homepage URL"
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri",
+      "description": "Source code repository URL"
+    },
+    "documentation": {
+      "type": "string",
+      "format": "uri",
+      "description": "Documentation URL"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Icon emoji or URL to icon image"
+    },
+    "agent": {
+      "type": "object",
+      "required": ["role"],
+      "properties": {
+        "role": {
+          "type": "string",
+          "description": "Specialized role name"
+        },
+        "role_file": {
+          "type": "string",
+          "description": "Path to role prompt file"
+        },
+        "tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Required tools"
+        },
+        "optional_tools": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Optional tools for enhanced functionality"
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "auto_memory_count": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 10
+            },
+            "rate_limit_requests": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "msgs_keep_max": {
+              "type": "integer",
+              "minimum": 10
+            },
+            "max_tool_response_length": {
+              "type": "integer",
+              "minimum": 100
+            }
+          },
+          "description": "Agent configuration overrides"
+        },
+        "env_vars": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["name", "description"],
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "description": {
+                "type": "string"
+              },
+              "required": {
+                "type": "boolean",
+                "default": false
+              },
+              "default": {
+                "type": "string"
+              }
+            }
+          },
+          "description": "Required environment variables"
+        }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["title", "prompt"],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "prompt": {
+            "type": "string"
+          },
+          "expected_output": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Usage examples"
+    },
+    "cost_estimate": {
+      "type": "object",
+      "properties": {
+        "tokens_per_task": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "integer"
+            },
+            "average": {
+              "type": "integer"
+            }
+          }
+        },
+        "llm_calls_per_task": {
+          "type": "object",
+          "properties": {
+            "min": {
+              "type": "integer"
+            },
+            "max": {
+              "type": "integer"
+            },
+            "average": {
+              "type": "integer"
+            }
+          }
+        },
+        "recommended_models": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Cost estimates for using this agent"
+    },
+    "performance": {
+      "type": "object",
+      "properties": {
+        "success_rate": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "average_completion_time": {
+          "type": "string",
+          "description": "Human-readable time estimate"
+        },
+        "tested_on": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "LLM models tested"
+        }
+      }
+    },
+    "requirements": {
+      "type": "object",
+      "properties": {
+        "python_version": {
+          "type": "string",
+          "pattern": "^>=?\\d+\\.\\d+$"
+        },
+        "agent_zero_version": {
+          "type": "string",
+          "pattern": "^>=?\\d+\\.\\d+\\.\\d+$"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "system": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["linux", "darwin", "windows", "android"]
+          }
+        }
+      }
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "downloads": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "rating": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 5
+        },
+        "verified": {
+          "type": "boolean"
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

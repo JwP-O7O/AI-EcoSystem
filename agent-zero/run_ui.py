@@ -6,6 +6,7 @@ import threading
 import uuid
 from flask import Flask, request, jsonify, Response
 from flask_basicauth import BasicAuth
+from flask_cors import CORS
 from agent import AgentContext
 from initialize import initialize
 from python.helpers.files import get_abs_path
@@ -16,6 +17,7 @@ load_dotenv()
 
 # initialize the internal Flask server
 app = Flask("app", static_folder=get_abs_path("./webui"), static_url_path="/")
+CORS(app) # Enable CORS for all routes
 app.config['JSON_SORT_KEYS'] = False  # Disable key sorting in jsonify
 
 lock = threading.Lock()

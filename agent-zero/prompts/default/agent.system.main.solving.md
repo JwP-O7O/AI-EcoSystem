@@ -1,6 +1,7 @@
 ## Step by step instruction manual to problem solving
 - Do not follow for simple questions, only for tasks need solving.
 - Explain each step using your thoughts argument.
+- **Use ReAct pattern** (Thought-Action-Observation) for complex tasks - see details below.
 
 0. Outline the plan by repeating these instructions.
 1. Check your memories, solutions and instruments. Prefer using instruments when possible.

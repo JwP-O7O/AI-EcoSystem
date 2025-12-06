@@ -1,0 +1,207 @@
+name: Marketplace Validation
+
+on:
+  pull_request:
+    paths:
+      - 'marketplace/**'
+
+jobs:
+  validate-submission:
+    name: Validate Marketplace Submission
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install jsonschema pyyaml
+
+      - name: Detect Changed Files
+        id: changes
+        run: |
+          git diff --name-only origin/main...HEAD > changed_files.txt
+          cat changed_files.txt
+
+      - name: Validate Agent Manifests
+        run: |
+          python -c "
+          import os
+          import yaml
+          import json
+          from jsonschema import validate, ValidationError
+
+          # Load schema
+          with open('marketplace/schemas/agent-schema.json') as f:
+              agent_schema = json.load(f)
+
+          # Find all agent manifests in PR
+          errors = []
+          with open('changed_files.txt') as f:
+              for line in f:
+                  file_path = line.strip()
+                  if 'marketplace/agents/' in file_path and file_path.endswith('manifest.yml'):
+                      print(f'Validating {file_path}...')
+                      try:
+                          with open(file_path) as mf:
+                              manifest = yaml.safe_load(mf)
+                              validate(instance=manifest, schema=agent_schema)
+                              print(f'✅ {file_path} is valid')
+                      except ValidationError as e:
+                          errors.append(f'❌ {file_path}: {e.message}')
+                      except Exception as e:
+                          errors.append(f'❌ {file_path}: {str(e)}')
+
+          if errors:
+              print('\\nValidation Errors:')
+              for error in errors:
+                  print(error)
+              exit(1)
+          else:
+              print('\\n✅ All manifests are valid!')
+          "
+
+      - name: Validate Tool Manifests
+        run: |
+          python -c "
+          import os
+          import yaml
+          import json
+          from jsonschema import validate, ValidationError
+
+          # Load schema
+          with open('marketplace/schemas/tool-schema.json') as f:
+              tool_schema = json.load(f)
+
+          # Find all tool manifests in PR
+          errors = []
+          with open('changed_files.txt') as f:
+              for line in f:
+                  file_path = line.strip()
+                  if 'marketplace/tools/' in file_path and file_path.endswith('manifest.yml'):
+                      print(f'Validating {file_path}...')
+                      try:
+                          with open(file_path) as mf:
+                              manifest = yaml.safe_load(mf)
+                              validate(instance=manifest, schema=tool_schema)
+                              print(f'✅ {file_path} is valid')
+                      except ValidationError as e:
+                          errors.append(f'❌ {file_path}: {e.message}')
+                      except Exception as e:
+                          errors.append(f'❌ {file_path}: {str(e)}')
+
+          if errors:
+              print('\\nValidation Errors:')
+              for error in errors:
+                  print(error)
+              exit(1)
+          else:
+              print('\\n✅ All manifests are valid!')
+          "
+
+      - name: Security Scan Submitted Code
+        run: |
+          # Scan for hardcoded secrets
+          pip install detect-secrets
+          detect-secrets scan marketplace/ --baseline .secrets.baseline || true
+
+          # Scan Python files for security issues
+          pip install bandit
+          find marketplace/ -name "*.py" -exec bandit {} + || true
+
+      - name: Check License Compatibility
+        run: |
+          python -c "
+          import yaml
+
+          allowed_licenses = ['MIT', 'Apache-2.0', 'GPL-3.0', 'BSD-3-Clause', 'ISC']
+
+          with open('changed_files.txt') as f:
+              for line in f:
+                  file_path = line.strip()
+                  if file_path.endswith('manifest.yml'):
+                      with open(file_path) as mf:
+                          manifest = yaml.safe_load(mf)
+                          license = manifest.get('license', '')
+                          if license not in allowed_licenses:
+                              print(f'❌ {file_path}: License \"{license}\" not in allowed list')
+                              exit(1)
+
+          print('✅ All licenses are compatible')
+          "
+
+      - name: Generate Registry Update
+        if: success()
+        run: |
+          python -c "
+          import json
+          import yaml
+          import os
+          from datetime import datetime
+
+          # Load current registry
+          with open('marketplace/registry.json') as f:
+              registry = json.load(f)
+
+          # Process new/updated items
+          with open('changed_files.txt') as f:
+              for line in f:
+                  file_path = line.strip()
+                  if 'marketplace/agents/' in file_path and file_path.endswith('manifest.yml'):
+                      with open(file_path) as mf:
+                          manifest = yaml.safe_load(mf)
+
+                          # Create registry entry
+                          entry = {
+                              'id': manifest['name'],
+                              'name': manifest.get('name', '').replace('-', ' ').title(),
+                              'version': manifest['version'],
+                              'author': manifest['author'],
+                              'description': manifest['description'],
+                              'category': manifest['category'],
+                              'tags': manifest.get('tags', []),
+                              'license': manifest['license'],
+                              'icon': manifest.get('icon', '🤖'),
+                              'downloads': 0,
+                              'rating': 0,
+                              'verified': manifest['author'] == 'agent-zero-framework',
+                              'manifest_url': f'https://raw.githubusercontent.com/agent-zero-framework/marketplace/main/{file_path}'
+                          }
+
+                          # Add or update
+                          found = False
+                          for i, item in enumerate(registry['agents']):
+                              if item['id'] == entry['id']:
+                                  registry['agents'][i] = entry
+                                  found = True
+                                  break
+                          if not found:
+                              registry['agents'].append(entry)
+
+          # Update metadata
+          registry['updated'] = datetime.utcnow().isoformat() + 'Z'
+          registry['total_items'] = len(registry['agents']) + len(registry['tools']) + len(registry['prompts'])
+
+          # Save updated registry
+          with open('marketplace/registry.json', 'w') as f:
+              json.dump(registry, f, indent=2)
+
+          print('✅ Registry updated successfully')
+          "
+
+      - name: Comment on PR
+        if: success()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ **Marketplace validation passed!**\n\nYour submission has been validated and will be reviewed by a maintainer.'
+            })

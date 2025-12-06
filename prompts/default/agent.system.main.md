@@ -7,3 +7,5 @@
 {{ include "./agent.system.main.solving.md" }}
 
 {{ include "./agent.system.main.tips.md" }}
+
+{{ include "./agent.system.main.advanced.md" }}

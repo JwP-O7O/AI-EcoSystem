@@ -1,0 +1,109 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for Agent Zero
+title: "[Feature]: "
+labels: ["type: feature", "status: triage"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! We appreciate your input.
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: A clear and concise description of the feature you'd like to see
+      placeholder: Describe the feature
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Who would use this feature and why?
+      placeholder: |
+        As a [user type], I want to [goal] so that [benefit].
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How do you envision this feature working?
+      placeholder: Describe how it should work
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or features?
+      placeholder: Describe alternatives
+    validations:
+      required: false
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: Which area does this feature relate to?
+      options:
+        - Core Framework
+        - Tools & Integrations
+        - Memory System
+        - CLI & Developer Tools
+        - Mobile App
+        - Visual Builder
+        - Cloud Platform
+        - Marketplace
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (Your Opinion)
+      description: How important is this feature to you?
+      options:
+        - Critical - Can't use Agent Zero without it
+        - High - Would significantly improve my workflow
+        - Medium - Would be nice to have
+        - Low - Just an idea
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: willing-to-contribute
+    attributes:
+      label: Contribution
+      description: Would you be willing to contribute to this feature?
+      options:
+        - label: I would be willing to implement this feature
+        - label: I would be willing to test this feature
+        - label: I would be willing to help with documentation
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Add any other context, mockups, or examples here
+      placeholder: Screenshots, diagrams, code examples, etc.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Pre-submission Checklist
+      options:
+        - label: I have searched existing feature requests to avoid duplicates
+          required: true
+        - label: This feature aligns with Agent Zero's goals
+          required: true

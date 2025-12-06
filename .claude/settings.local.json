@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(test:*)",
+      "Bash(chmod:*)",
+      "Bash(pkg update -y)",
+      "Bash(for pkg in python git openssh openssl libffi rust binutils clang wget curl)",
+      "Bash(do if dpkg -l)",
+      "Bash(then echo \"✅ $pkg\")",
+      "Bash(else echo \"❌ $pkg (needs install)\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(pkg install:*)",
+      "Bash(pip install:*)",
+      "Bash(python -c:*)",
+      "Bash(python:*)",
+      "Bash(cat:*)",
+      "Bash(timeout 30 python:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

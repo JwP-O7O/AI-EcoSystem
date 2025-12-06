@@ -24,7 +24,11 @@ class CodeExecution(Tool):
 
         await self.prepare_state()
 
-        # os.chdir(files.get_abs_path("./work_dir")) #change CWD to work_dir
+        # Change CWD to user's working directory if set
+        import os
+        work_dir = self.agent.get_data("work_dir")
+        if work_dir and os.path.exists(work_dir):
+            os.chdir(work_dir)
 
         runtime = self.args.get("runtime", "").lower().strip()
 

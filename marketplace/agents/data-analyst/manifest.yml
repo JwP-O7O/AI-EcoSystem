@@ -1,0 +1,119 @@
+name: data-analyst-agent
+version: 1.0.0
+author: agent-zero-framework
+description: Specialized agent for data analysis, visualization, and insights extraction
+long_description: |
+  The Data Analyst Agent is optimized for working with datasets, performing statistical
+  analysis, creating visualizations, and extracting actionable insights. It excels at:
+  - Loading and cleaning data from various formats (CSV, JSON, Excel, SQL)
+  - Exploratory data analysis (EDA)
+  - Statistical analysis and hypothesis testing
+  - Creating charts and visualizations with matplotlib/seaborn
+  - Generating summary reports
+
+  Perfect for data scientists, analysts, and anyone working with data.
+
+category: data-science
+tags:
+  - data-analysis
+  - pandas
+  - visualization
+  - statistics
+  - python
+  - jupyter
+  - machine-learning
+license: MIT
+
+icon: "📊"
+
+homepage: https://agentzero.dev/agents/data-analyst
+repository: https://github.com/agent-zero-framework/marketplace
+documentation: https://docs.agentzero.dev/agents/data-analyst
+
+agent:
+  role: data_analyst
+  role_file: role.data_analyst.md
+
+  tools:
+    - code_execution
+    - file_operations
+    - web_search
+    - memory_save
+    - response
+
+  optional_tools:
+    - web_scraper
+    - database_query
+
+  config:
+    auto_memory_count: 5
+    rate_limit_requests: 30
+    msgs_keep_max: 30
+    max_tool_response_length: 5000
+
+  env_vars:
+    - name: PANDAS_DISPLAY_MAX_ROWS
+      description: Maximum rows to display in pandas output
+      required: false
+      default: "100"
+
+    - name: MATPLOTLIB_BACKEND
+      description: Matplotlib backend for rendering
+      required: false
+      default: "Agg"
+
+examples:
+  - title: Analyze CSV Dataset
+    description: Load and analyze a CSV file, generating summary statistics
+    prompt: "Analyze the sales_data.csv file and provide key insights about revenue trends"
+    expected_output: "Statistical summary, trend analysis, and visualizations"
+
+  - title: Data Cleaning
+    description: Clean messy data and handle missing values
+    prompt: "Clean the customer_data.csv file, handle missing values, and remove duplicates"
+    expected_output: "Cleaned dataset with summary of changes made"
+
+  - title: Create Visualization
+    description: Generate charts from data
+    prompt: "Create a bar chart showing monthly sales from Q4_sales.xlsx"
+    expected_output: "Generated chart image and insights"
+
+cost_estimate:
+  tokens_per_task:
+    min: 2000
+    max: 15000
+    average: 6000
+
+  llm_calls_per_task:
+    min: 3
+    max: 12
+    average: 6
+
+  recommended_models:
+    - gemini-2.5-flash
+    - gpt-4-turbo
+    - claude-3-sonnet
+
+performance:
+  success_rate: 0.92
+  average_completion_time: "2-5 minutes"
+  tested_on:
+    - gemini-2.5-flash
+    - gpt-4-turbo
+    - claude-3.5-sonnet
+
+requirements:
+  python_version: ">=3.10"
+  agent_zero_version: ">=2.0.0"
+  dependencies:
+    - pandas>=2.0.0
+    - matplotlib>=3.7.0
+    - seaborn>=0.12.0
+    - numpy>=1.24.0
+    - scipy>=1.10.0
+    - openpyxl>=3.1.0
+  system:
+    - linux
+    - darwin
+    - windows
+    - android

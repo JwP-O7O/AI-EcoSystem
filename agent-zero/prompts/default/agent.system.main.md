@@ -6,4 +6,6 @@
 
 {{ include "./agent.system.main.solving.md" }}
 
+{{ include "./agent.system.main.solving.react.md" }}
+
 {{ include "./agent.system.main.tips.md" }}

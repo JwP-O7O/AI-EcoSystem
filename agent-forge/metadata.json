@@ -1,0 +1,6 @@
+{
+  "name": "AgentForge",
+  "description": "An advanced platform to forge, deploy, and command autonomous AI agents. Design your agent, and our Forge builds and deploys it in a live command environment you control instantly.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}

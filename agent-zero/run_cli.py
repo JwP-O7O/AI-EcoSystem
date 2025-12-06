@@ -1,7 +1,11 @@
 import asyncio
 import sys
 import threading, time, models, os
-from ansio import application_keypad, mouse_input, raw_input
+from ansio import application_keypad, mouse_input
+try:
+    from ansio import raw_input
+except ImportError:
+    from ansio import ansi_input as raw_input
 from ansio.input import InputEvent, get_input_event
 from agent import AgentContext
 from python.helpers.print_style import PrintStyle

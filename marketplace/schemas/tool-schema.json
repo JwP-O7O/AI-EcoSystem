@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://agentzero.dev/schemas/tool-manifest.json",
+  "title": "Tool Manifest",
+  "description": "Schema for Agent Zero marketplace tool manifests",
+  "type": "object",
+  "required": ["name", "version", "author", "description", "category", "license", "tool"],
+  "properties": {
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z0-9-]+$",
+      "minLength": 3,
+      "maxLength": 50,
+      "description": "Unique tool identifier"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "author": {
+      "type": "string",
+      "minLength": 2,
+      "maxLength": 50
+    },
+    "description": {
+      "type": "string",
+      "minLength": 10,
+      "maxLength": 200
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "productivity",
+        "development",
+        "data",
+        "communication",
+        "ai-ml",
+        "cloud",
+        "automation",
+        "security",
+        "analytics",
+        "integration"
+      ]
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 10
+    },
+    "license": {
+      "type": "string",
+      "enum": ["MIT", "Apache-2.0", "GPL-3.0", "BSD-3-Clause", "ISC", "Proprietary"]
+    },
+    "tool": {
+      "type": "object",
+      "required": ["class_name", "file"],
+      "properties": {
+        "class_name": {
+          "type": "string",
+          "description": "Python class name"
+        },
+        "file": {
+          "type": "string",
+          "description": "Python file containing the tool class"
+        },
+        "prompt_file": {
+          "type": "string",
+          "description": "Optional prompt template file"
+        },
+        "config_required": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Required configuration keys"
+        },
+        "dependencies": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Python package dependencies"
+        },
+        "api_requirements": {
+          "type": "object",
+          "properties": {
+            "rate_limit": {
+              "type": "object",
+              "properties": {
+                "requests_per_minute": {
+                  "type": "integer"
+                },
+                "requests_per_day": {
+                  "type": "integer"
+                }
+              }
+            },
+            "authentication": {
+              "type": "string",
+              "enum": ["api_key", "oauth2", "basic", "none"]
+            },
+            "cost": {
+              "type": "object",
+              "properties": {
+                "free_tier": {
+                  "type": "boolean"
+                },
+                "pricing_url": {
+                  "type": "string",
+                  "format": "uri"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "examples": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "output": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  }
+}
