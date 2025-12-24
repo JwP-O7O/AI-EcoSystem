@@ -9,5 +9,9 @@
 - High-quality Code Implementation (Python, JS, Shell)
 - Debugging & Optimization
 - Writing Unit Tests
+- Running Static Analysis
+
+## Tools
+- `static_analysis_tool`
 
 *See `role.nexus_architect.md` for full protocol specs.*
