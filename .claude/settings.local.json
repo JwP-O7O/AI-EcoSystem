@@ -15,7 +15,9 @@
       "Bash(python -c:*)",
       "Bash(python:*)",
       "Bash(cat:*)",
-      "Bash(timeout 30 python:*)"
+      "Bash(timeout 30 python:*)",
+      "Bash(pkg list-installed:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
