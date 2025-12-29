@@ -1,5 +1,7 @@
 import * as msgs from "./messages.js"
 
+let wakeUpPolling = () => {}; // Bolt optimization: allow waking up the polling loop
+
 const leftPanel = document.getElementById('left-panel');
 const rightPanel = document.getElementById('right-panel');
 const container = document.querySelector('.container');
@@ -78,6 +80,7 @@ async function sendMessage() {
             //setMessage('user', message);
             chatInput.value = '';
             adjustTextareaHeight();
+            wakeUpPolling(); // Bolt: update immediately
         }
     } catch (e) {
         toast(e.message, "error")
@@ -249,16 +252,19 @@ function updatePauseButtonState(isPaused) {
 window.pauseAgent = async function (paused) {
     const resp = await sendJsonData("/pause", { paused: paused, context });
     updatePauseButtonState(paused);
+    wakeUpPolling(); // Bolt: update immediately
 }
 
 window.resetChat = async function () {
     const resp = await sendJsonData("/reset", { context });
     updateAfterScroll()
+    wakeUpPolling(); // Bolt: update immediately
 }
 
 window.newChat = async function () {
     setContext(generateGUID());
     updateAfterScroll()
+    wakeUpPolling(); // Bolt: update immediately
 }
 
 window.killChat = async function (id) {
@@ -283,11 +289,13 @@ window.killChat = async function (id) {
     if (found) sendJsonData("/remove", { context: id });
 
     updateAfterScroll()
+    wakeUpPolling(); // Bolt: update immediately
 }
 
 window.selectChat = async function (id) {
     setContext(id)
     updateAfterScroll()
+    wakeUpPolling(); // Bolt: update immediately
 }
 
 const setContext = function (id) {
@@ -429,11 +437,14 @@ chatInput.addEventListener('input', adjustTextareaHeight);
 
 async function startPolling() {
     const shortInterval = 25
-    const longInterval = 250
+    const longInterval = 1000 // Bolt: 250 -> 1000 to save bandwidth when idle
     const shortIntervalPeriod = 100
     let shortIntervalCount = 0
+    let pollTimeout = null;
+    let isPolling = false;
 
     async function _doPoll() {
+        isPolling = true;
         let nextInterval = longInterval
 
         try {
@@ -443,11 +454,22 @@ async function startPolling() {
             nextInterval = shortIntervalCount > 0 ? shortInterval : longInterval;
         } catch (error) {
             console.error('Error:', error);
+        } finally {
+            isPolling = false;
         }
 
         // Call the function again after the selected interval
-        setTimeout(_doPoll.bind(this), nextInterval);
+        pollTimeout = setTimeout(_doPoll.bind(this), nextInterval);
     }
+
+    wakeUpPolling = () => {
+        shortIntervalCount = shortIntervalPeriod; // switch to fast polling
+        if (!isPolling && pollTimeout) {
+            clearTimeout(pollTimeout);
+            pollTimeout = null;
+            _doPoll();
+        }
+    };
 
     _doPoll();
 }
