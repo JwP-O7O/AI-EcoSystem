@@ -525,8 +525,144 @@ def update(
     else:
         console.print("[yellow]Checking updates for all installed items...[/yellow]")
 
-    # TODO: Implement update checking and installation
-    console.print("[green]All items are up to date[/green]")
+    metadata_file = LOCAL_CACHE / "installed.json"
+    if not metadata_file.exists():
+        console.print("[yellow]No installed items found.[/yellow]")
+        return
+
+    try:
+        installed = json.loads(metadata_file.read_text())
+    except json.JSONDecodeError:
+        console.print("[red]Error reading installed items metadata.[/red]")
+        return
+
+    # Filter items to check
+    items_to_check = [item_id] if item_id else list(installed.keys())
+    updates = []
+
+    client = MarketplaceClient()
+
+    with Progress(
+        SpinnerColumn(),
+        TextColumn("[progress.description]{task.description}"),
+        BarColumn(),
+        console=console
+    ) as progress:
+        task = progress.add_task("Checking for updates...", total=len(items_to_check))
+
+        for current_id in items_to_check:
+            if current_id not in installed:
+                console.print(f"[yellow]Item {current_id} not installed, skipping.[/yellow]")
+                progress.advance(task)
+                continue
+
+            progress.update(task, description=f"Checking {current_id}...")
+
+            try:
+                # Get remote info
+                remote_item = client.get_item(current_id)
+                current_version = installed[current_id]["version"]
+                remote_version = remote_item["version"]
+
+                if _compare_versions(remote_version, current_version) > 0:
+                    updates.append({
+                        "id": current_id,
+                        "name": installed[current_id]["name"],
+                        "current_version": current_version,
+                        "new_version": remote_version,
+                        "remote_item": remote_item
+                    })
+            except Exception as e:
+                console.print(f"[red]Error checking updates for {current_id}: {e}[/red]")
+
+            progress.advance(task)
+
+    if not updates:
+        console.print("[green]All items are up to date[/green]")
+        return
+
+    # Display updates
+    table = Table(title="Available Updates", show_header=True)
+    table.add_column("ID", style="cyan")
+    table.add_column("Name", style="green")
+    table.add_column("Current", style="yellow")
+    table.add_column("Latest", style="bold green")
+
+    for update in updates:
+        table.add_row(
+            update["id"],
+            update["name"],
+            update["current_version"],
+            update["new_version"]
+        )
+
+    console.print(table)
+
+    if check:
+        return
+
+    if not Confirm.ask("Install updates?"):
+        console.print("[yellow]Update cancelled[/yellow]")
+        return
+
+    # Install updates
+    for update in updates:
+        item_id = update["id"]
+        # Use existing install path if available
+        current_path_str = installed[item_id].get("path")
+        target_dir = Path(current_path_str) if current_path_str else INSTALL_DIR
+
+        console.print(f"Updating [cyan]{item_id}[/cyan] to [green]{update['new_version']}[/green]...")
+
+        # Download and install new files
+        if client.download_item(item_id, target_dir):
+            # Update metadata
+            installed[item_id]["version"] = update["new_version"]
+            installed[item_id]["updated_at"] = datetime.now().isoformat()
+
+            # Update other fields from remote
+            remote_item = update["remote_item"]
+            installed[item_id]["name"] = remote_item["name"]
+            installed[item_id]["category"] = remote_item["category"]
+
+            metadata_file.write_text(json.dumps(installed, indent=2))
+            console.print(f"[bold green]Updated {item_id} successfully[/bold green]")
+        else:
+            console.print(f"[red]Failed to update {item_id}[/red]")
+
+
+def _compare_versions(v1: str, v2: str) -> int:
+    """Compare two version strings (v1 vs v2). Returns 1 if v1 > v2, -1 if v1 < v2, 0 if equal."""
+    def parse_version(v):
+        parts = []
+        for part in v.split('.'):
+            if part.isdigit():
+                parts.append(int(part))
+            else:
+                # Handle non-numeric parts (e.g., 'beta', 'rc1') by treating them as 0 for simplicity
+                # or extracting leading digits if possible.
+                # For this implementation, we'll try to extract leading digits, else 0.
+                import re
+                match = re.match(r"(\d+)", part)
+                if match:
+                    parts.append(int(match.group(1)))
+                else:
+                    parts.append(0)
+        return parts
+
+    parts1 = parse_version(v1)
+    parts2 = parse_version(v2)
+
+    # Pad with zeros
+    length = max(len(parts1), len(parts2))
+    parts1.extend([0] * (length - len(parts1)))
+    parts2.extend([0] * (length - len(parts2)))
+
+    if parts1 > parts2:
+        return 1
+    elif parts1 < parts2:
+        return -1
+    return 0
 
 
 if __name__ == "__main__":
