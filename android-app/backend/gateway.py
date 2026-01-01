@@ -6,19 +6,53 @@ Orchestrates Agent Zero, Solana Bot, and Marketplace services
 
 from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room
+import socketio as sio_client
 import requests
 import subprocess
 import os
 import sys
 import time
 import json
-from threading import Thread
+from threading import Thread, Lock
 from pathlib import Path
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
+
+# Solana Bot Socket.IO Client
+solana_client = sio_client.Client()
+solana_connect_lock = Lock()
+
+@solana_client.event
+def connect():
+    print("✅ Connected to Solana Bot Socket.IO")
+
+@solana_client.event
+def disconnect():
+    print("❌ Disconnected from Solana Bot Socket.IO")
+
+@solana_client.on('dashboardUpdate')
+def on_dashboard_update(data):
+    """Forward dashboard updates to gateway clients"""
+    # Broadcast to all clients in the subscription room
+    socketio.emit('solana_update', data, room='solana_subscribers')
+
+def ensure_solana_connection():
+    """Ensure we are connected to Solana Bot"""
+    with solana_connect_lock:
+        if not solana_client.connected:
+            try:
+                url = SERVICES['solana_bot']['url']
+                # Only attempt connection if service is likely running
+                if check_service_health('solana_bot'):
+                    print(f"Connecting to Solana Bot at {url}...")
+                    solana_client.connect(url, wait_timeout=5)
+                else:
+                    print("⚠️ Solana Bot not healthy, skipping connection")
+            except Exception as e:
+                print(f"❌ Failed to connect to Solana Bot: {e}")
 
 # Base paths
 BASE_DIR = Path(__file__).parent.parent.parent
@@ -263,7 +297,12 @@ def handle_disconnect():
 @socketio.on('subscribe_solana')
 def handle_subscribe_solana():
     """Subscribe to Solana Bot updates"""
-    # TODO: Forward Socket.IO events from Solana Bot
+    # Add client to the subscription room
+    join_room('solana_subscribers')
+
+    # Ensure we are connected to the source
+    Thread(target=ensure_solana_connection).start()
+
     emit('solana_subscribed', {'message': 'Subscribed to Solana Bot updates'})
 
 # ==================== FRONTEND SERVING ====================
