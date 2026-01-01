@@ -317,8 +317,48 @@ def list_items(
 
     if installed:
         console.print("[yellow]Listing installed marketplace items...[/yellow]")
-        # TODO: Implement installed items tracking
-        console.print("[dim]No installed items tracked yet[/dim]")
+
+        metadata_file = LOCAL_CACHE / "installed.json"
+        if not metadata_file.exists():
+            console.print("[dim]No installed items tracked yet[/dim]")
+            return
+
+        try:
+            installed_items = json.loads(metadata_file.read_text())
+        except json.JSONDecodeError:
+            console.print("[red]Error reading installed items cache[/red]")
+            return
+
+        if not installed_items:
+            console.print("[dim]No installed items tracked yet[/dim]")
+            return
+
+        table = Table(title="Installed Marketplace Items", show_header=True)
+        table.add_column("ID", style="cyan", no_wrap=True)
+        table.add_column("Name", style="green")
+        table.add_column("Category", style="blue")
+        table.add_column("Version", style="yellow")
+        table.add_column("Installed At", style="magenta")
+        table.add_column("Path", style="dim")
+
+        for item_id, data in installed_items.items():
+            installed_at = data.get('installed_at', 'Unknown')
+            try:
+                dt = datetime.fromisoformat(installed_at)
+                installed_at = dt.strftime("%Y-%m-%d %H:%M")
+            except (ValueError, TypeError):
+                pass
+
+            table.add_row(
+                item_id,
+                data.get('name', 'Unknown'),
+                data.get('category', 'Unknown'),
+                data.get('version', 'Unknown'),
+                installed_at,
+                data.get('path', 'Unknown')
+            )
+
+        console.print(table)
         return
 
     client = MarketplaceClient()
