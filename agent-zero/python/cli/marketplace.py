@@ -3,6 +3,7 @@ Agent Zero Marketplace CLI
 Install, search, publish, and manage marketplace items (agents, tools, prompts)
 """
 
+import ast
 import json
 import shutil
 import tempfile
@@ -267,6 +268,99 @@ Use this agent when you need {item_id.replace("-", " ")} capabilities.
         """Convert item ID to Python class name"""
         return ''.join(word.capitalize() for word in item_id.split('-'))
 
+    def validate_item(self, path: Path, category: str) -> None:
+        """
+        Validate item before publishing.
+        Raises ValueError if validation fails.
+        """
+        if not path.exists():
+            raise ValueError(f"Path does not exist: {path}")
+
+        if path.is_dir():
+            # Check for manifest if it's a directory (optional but recommended)
+            manifest = path / "manifest.json"
+            if manifest.exists():
+                try:
+                    data = json.loads(manifest.read_text())
+                    required_fields = ["name", "version", "category"]
+                    missing = [f for f in required_fields if f not in data]
+                    if missing:
+                        raise ValueError(f"Manifest missing required fields: {', '.join(missing)}")
+                    if data["category"] != category:
+                        raise ValueError(f"Manifest category '{data['category']}' does not match provided category '{category}'")
+                except json.JSONDecodeError:
+                    raise ValueError("Invalid manifest.json format")
+
+            # Check for required files based on category
+            if category == "prompt":
+                # Expect at least one .md file
+                if not any(path.glob("*.md")):
+                    raise ValueError("No markdown (.md) files found in directory for prompt category")
+
+            elif category in ["tool", "agent"]:
+                # Expect at least one .py file that looks like a tool
+                found_tool = False
+                for py_file in path.glob("*.py"):
+                    try:
+                        self._validate_python_tool(py_file)
+                        found_tool = True
+                        break
+                    except ValueError:
+                        continue
+
+                if not found_tool:
+                    raise ValueError(f"No valid tool/agent file found in directory. Must have a class inheriting from Tool with an execute method.")
+
+        else:
+            # File validation
+            if category == "prompt":
+                if path.suffix != ".md":
+                    raise ValueError(f"Prompt file must have .md extension, got {path.suffix}")
+                if path.stat().st_size == 0:
+                    raise ValueError("Prompt file is empty")
+
+            elif category in ["tool", "agent"]:
+                if path.suffix != ".py":
+                    raise ValueError(f"Tool/Agent file must have .py extension, got {path.suffix}")
+                self._validate_python_tool(path)
+
+    def _validate_python_tool(self, file_path: Path) -> None:
+        """Validate a Python tool file"""
+        try:
+            content = file_path.read_text()
+            tree = ast.parse(content)
+        except SyntaxError as e:
+            raise ValueError(f"Invalid Python syntax in {file_path.name}: {e}")
+
+        has_tool_class = False
+        has_execute = False
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ClassDef):
+                # Check inheritance
+                is_tool = False
+                for base in node.bases:
+                    if isinstance(base, ast.Name) and base.id == 'Tool':
+                        is_tool = True
+                        break
+                    # Handle imported Tool (e.g., tool.Tool)
+                    if isinstance(base, ast.Attribute) and base.attr == 'Tool':
+                        is_tool = True
+                        break
+
+                if is_tool:
+                    has_tool_class = True
+                    # Check for execute method
+                    for subnode in node.body:
+                        if isinstance(subnode, ast.AsyncFunctionDef) and subnode.name == 'execute':
+                            has_execute = True
+                            break
+
+        if not has_tool_class:
+            raise ValueError(f"No class inheriting from Tool found in {file_path.name}")
+        if not has_execute:
+            raise ValueError(f"No async execute method found in Tool class in {file_path.name}")
+
 
 @marketplace_app.command("search")
 def search(
@@ -383,6 +477,8 @@ def install(
             return
 
     # Install with progress
+    client = MarketplaceClient()
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -453,6 +549,8 @@ def publish(
         console.print("[yellow]Publishing cancelled[/yellow]")
         return
 
+    client = MarketplaceClient()
+
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
@@ -461,7 +559,16 @@ def publish(
         task = progress.add_task("Publishing...", total=100)
 
         progress.update(task, advance=25, description="Validating...")
-        # TODO: Validation logic
+        try:
+            client.validate_item(item_path, category)
+        except ValueError as e:
+            progress.stop()
+            console.print(f"[red]Validation failed: {e}[/red]")
+            raise typer.Exit(1)
+        except Exception as e:
+            progress.stop()
+            console.print(f"[red]Unexpected error during validation: {e}[/red]")
+            raise typer.Exit(1)
 
         progress.update(task, advance=25, description="Packaging...")
         # TODO: Create package
