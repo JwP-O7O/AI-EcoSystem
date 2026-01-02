@@ -20,6 +20,7 @@ from rich.text import Text
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import models
 from agent import AgentContext
 from initialize import initialize
 from python.helpers.print_style import PrintStyle
@@ -43,8 +44,59 @@ async def run_task(
 
     # Override model if specified
     if model:
-        # TODO: Override model in config
-        pass
+        console.print(f"[dim]Overriding model with: {model}[/dim]")
+
+        parts = model.split("/", 1)
+        if len(parts) == 2:
+            provider, model_name = parts
+        else:
+            provider = "auto"
+            model_name = model
+
+        # Normalize provider
+        provider = provider.lower()
+
+        if provider == "openai":
+            config.chat_model = models.get_openai_chat(model_name=model_name, temperature=0)
+        elif provider == "anthropic":
+             config.chat_model = models.get_anthropic_chat(model_name=model_name, temperature=0)
+        elif provider == "google":
+             config.chat_model = models.get_google_chat(model_name=model_name, temperature=0)
+        elif provider == "groq":
+             config.chat_model = models.get_groq_chat(model_name=model_name, temperature=0)
+        elif provider == "mistral":
+             config.chat_model = models.get_mistral_chat(model_name=model_name, temperature=0)
+        elif provider == "ollama":
+             config.chat_model = models.get_ollama_chat(model_name=model_name, temperature=0)
+        elif provider == "openrouter":
+             config.chat_model = models.get_openrouter_chat(model_name=model_name, temperature=0)
+        elif provider == "sambanova":
+             config.chat_model = models.get_sambanova_chat(model_name=model_name, temperature=0)
+        elif provider == "lmstudio":
+             config.chat_model = models.get_lmstudio_chat(model_name=model_name, temperature=0)
+        elif provider == "azure":
+             config.chat_model = models.get_azure_openai_chat(deployment_name=model_name, temperature=0)
+        elif provider == "auto":
+            # Heuristics
+            if model_name.startswith("gpt-") or model_name.startswith("o1-"):
+                config.chat_model = models.get_openai_chat(model_name=model_name, temperature=0)
+            elif model_name.startswith("claude-"):
+                config.chat_model = models.get_anthropic_chat(model_name=model_name, temperature=0)
+            elif model_name.startswith("gemini-"):
+                config.chat_model = models.get_google_chat(model_name=model_name, temperature=0)
+            elif model_name.startswith("llama"):
+                # Ambiguous. Let's assume Ollama for local or Groq for speed?
+                # Defaulting to Ollama seems safe for "llama"
+                config.chat_model = models.get_ollama_chat(model_name=model_name, temperature=0)
+            else:
+                 console.print(f"[bold red]Error:[/bold red] Could not determine provider for model '{model}'. Please use format 'provider/model_name' (e.g. openai/gpt-4o).")
+                 raise typer.Exit(1)
+        else:
+             console.print(f"[bold red]Error:[/bold red] Unknown provider '{provider}'. Supported providers: openai, anthropic, google, groq, mistral, ollama, openrouter, sambanova, lmstudio, azure.")
+             raise typer.Exit(1)
+
+        # Update utility model to match
+        config.utility_model = config.chat_model
 
     context = AgentContext(config)
 
