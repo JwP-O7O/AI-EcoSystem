@@ -7,6 +7,7 @@ import asyncio
 import sys
 from pathlib import Path
 from typing import Optional
+import os
 
 from rich.console import Console
 from rich.panel import Panel
@@ -20,8 +21,57 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 from agent import AgentContext
 from initialize import initialize
 from python.helpers.print_style import PrintStyle
+import models
 
 console = Console()
+
+
+def get_llm_from_string(model_spec: str):
+    """
+    Parses a model specification string and returns the corresponding LangChain LLM object.
+
+    Format: "provider/model_name"
+    Example: "openai/gpt-4o", "anthropic/claude-3-5-sonnet"
+
+    If no provider is specified (no '/'), defaults to OpenRouter.
+    """
+    if "/" in model_spec:
+        provider, model_name = model_spec.split("/", 1)
+    else:
+        # Default to OpenRouter if no provider specified
+        provider = "openrouter"
+        model_name = model_spec
+
+    provider = provider.lower()
+
+    # Map providers to models.py functions
+    if provider == "openai":
+        return models.get_openai_chat(model_name=model_name, temperature=0)
+    elif provider == "anthropic":
+        return models.get_anthropic_chat(model_name=model_name, temperature=0)
+    elif provider == "google" or provider == "gemini":
+        return models.get_google_chat(model_name=model_name, temperature=0)
+    elif provider == "ollama":
+        return models.get_ollama_chat(model_name=model_name, temperature=0)
+    elif provider == "azure":
+        return models.get_azure_openai_chat(deployment_name=model_name, temperature=0)
+    elif provider == "mistral":
+        return models.get_mistral_chat(model_name=model_name, temperature=0)
+    elif provider == "groq":
+        return models.get_groq_chat(model_name=model_name, temperature=0)
+    elif provider == "openrouter":
+        return models.get_openrouter_chat(model_name=model_name)
+    elif provider == "sambanova":
+        return models.get_sambanova_chat(model_name=model_name, temperature=0)
+    elif provider == "lmstudio":
+        return models.get_lmstudio_chat(model_name=model_name, temperature=0)
+    else:
+        # Fallback to OpenRouter for unknown providers, or handle as error.
+        # Following agent_runner behavior: default to OpenRouter
+        # But here we identified provider from split, so if it's unknown, maybe we should warn?
+        # The prompt says: "defaulting to OpenRouter if the provider is unknown."
+        console.print(f"[yellow]Warning: Unknown provider '{provider}', defaulting to OpenRouter.[/yellow]")
+        return models.get_openrouter_chat(model_name=f"{provider}/{model_name}")
 
 
 async def start_chat(agent: Optional[str] = None, model: Optional[str] = None, debug: bool = False):
@@ -33,8 +83,14 @@ async def start_chat(agent: Optional[str] = None, model: Optional[str] = None, d
 
     # Override model if specified
     if model:
-        # TODO: Implement model override
-        pass
+        try:
+            console.print(f"[dim]Overriding model with: {model}[/dim]")
+            new_llm = get_llm_from_string(model)
+            config.chat_model = new_llm
+            config.utility_model = new_llm
+        except Exception as e:
+            console.print(f"[bold red]Error initializing model override: {e}[/bold red]")
+            console.print("[yellow]Falling back to default model.[/yellow]")
 
     context = AgentContext(config)
 
